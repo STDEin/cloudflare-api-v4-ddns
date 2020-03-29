@@ -19,6 +19,7 @@ set -o pipefail
 #            -u user@example.com \
 #            -h host.example.com \     # fqdn of the record you want to update
 #            -z example.com \          # will show you all zones if forgot, but you need this
+#            -c /etc/cf-v4-ddns.conf   # will read config file from specified file. Other settings will override the config file settings
 
 # Optional flags:
 #            -f false|true \           # force dns update, disregard local stored ip
@@ -44,12 +45,16 @@ CFTTL=120
 # Ignore local file, update ip anyway
 FORCE=false
 
+# Config file if specified
+CONFIG=
+
 # Site to retrieve WAN ip, other examples are: bot.whatismyipaddress.com, https://api.ipify.org/ ...
 WANIPSITE="http://icanhazip.com"
 
 # get parameter
-while getopts k:u:h:z:f: opts; do
+while getopts k:u:h:z:f:c: opts; do
   case ${opts} in
+    c) CONFIG=${OPTARG} ;;
     k) CFKEY=${OPTARG} ;;
     u) CFUSER=${OPTARG} ;;
     h) CFRECORD_NAME=${OPTARG} ;;
@@ -57,6 +62,16 @@ while getopts k:u:h:z:f: opts; do
     f) FORCE=${OPTARG} ;;
   esac
 done
+
+# If config is specified, check if exists, and if so load it
+if [ "$CONFIG" != "" ]; then
+  if [ -f "$CONFIG" ]; then
+    . $CONFIG
+  else
+    echo "Config file does not exist or is inaccessible"
+    exit 2
+  fi
+fi
 
 # If required settings are missing just exit
 if [ "$CFKEY" = "" ]; then
